@@ -1,97 +1,118 @@
 
 
-# Import Splinter and BeautifulSoup
+# Import Splinter, BeautifulSoup, Pandas, Datetime
 
 from splinter import Browser
 from bs4 import BeautifulSoup as soup
 from webdriver_manager.chrome import ChromeDriverManager
 import pandas as pd
+import datetime as dt
+
+def scrape_all():
+
+    executable_path = {'executable_path': ChromeDriverManager().install()}
+
+    browser = Browser('chrome', **executable_path, headless=True)
+
+    news_title, news_paragraph = mars_news(browser)
+
+    # Run all scraping functions and store results in dictionary
+    data = {
+        "news_title": news_title,
+        "news_paragraph": news_paragraph,
+        "featured_image": featured_image(browser),
+        "facts": mars_facts(),
+        "last_modified": dt.datetime.now()
+    }
+
+    # Stop webdriver and return data
+
+    browser.quit()
+
+    return data
+
+# Create Function
+
+def mars_news(browser):
+
+    # Visit the mars nasa news site
+
+    url = 'https://redplanetscience.com'
+
+    browser.visit(url)
+
+    # Optional delay for loading the page
+
+    browser.is_element_present_by_css('div.list_text', wait_time=1)
 
 
-executable_path = {'executable_path': ChromeDriverManager().install()}
-browser = Browser('chrome', **executable_path, headless=False)
+    #set up the html parser
 
+    html = browser.html
+    news_soup = soup(html, 'html.parser')
 
-# Visit the mars nasa news site
-url = 'https://redplanetscience.com'
+    try:
 
-browser.visit(url)
+        slide_elem = news_soup.select_one('div.list_text')
 
-# Optional delay for loading the page
+        # get_text pulls out the text (as opposed to the tags/elements)
 
-browser.is_element_present_by_css('div.list_text', wait_time=1)
+        news_title = slide_elem.find('div', class_='content_title').get_text()
+        
 
+        news_p = slide_elem.find('div', class_='article_teaser_body').get_text()
 
-#set up the html parser
+    except AttributeError:
 
-html = browser.html
-news_soup = soup(html, 'html.parser')
-slide_elem = news_soup.select_one('div.list_text')
+        return None, None
 
-
-
-slide_elem.find('div', class_='content_title')
-
-
-# get_text pulls out the text (as opposed to the tags/elements)
-
-news_title = slide_elem.find('div', class_='content_title').get_text()
-news_title
-
-
-
-#There are two methods used to find tags and attributes with BeautifulSoup:
-
-# .find() is used when we want only the first class and attribute we've specified.
-# .find_all() is used when we want to retrieve all of the tags and attributes.
-
-news_p = slide_elem.find('div', class_='article_teaser_body').get_text()
-
-news_p
+    return news_title, news_p
 
 
 # ### Featured Images
 # 
 # 
 
-
-
 # Visit URL
-url = 'https://spaceimages-mars.com/'
-browser.visit(url)
+
+def featured_image(browser):
+
+    url = 'https://spaceimages-mars.com/'
+    browser.visit(url)
 
 
-#we want it to click a button- find and click the full image button
+    #we want it to click a button- find and click the full image button
 
-full_image_elem = browser.find_by_tag('button')[1]
+    full_image_elem = browser.find_by_tag('button')[1]
 
-full_image_elem.click()
-
-
-
-# Parse the resulting html (the full image page) with soup
-
-html = browser.html
-
-img_soup = soup(html, 'html.parser')
+    full_image_elem.click()
 
 
+    # Parse the resulting html (the full image page) with soup
 
-#build the relative image url (can't hard-code the url or it will give the same image every time)
+    html = browser.html
 
-img_url_rel = img_soup.find('img', class_='fancybox-image').get('src')
-
-#get('src') give the partial link to the image (Source)
-
-img_url_rel
+    img_soup = soup(html, 'html.parser')
 
 
+    #build the relative image url (can't hard-code the url or it will give the same image every time)
 
-#add the base link so we can put them together to create a working link 
+    try:
 
-img_url = f'https://spaceimages-mars.com/{img_url_rel}'
+        img_url_rel = img_soup.find('img', class_='fancybox-image').get('src')
 
-img_url
+    #get('src') give the partial link to the image (Source)
+
+    except AttributeError:
+
+        return None
+
+    #add the base link so we can put them together to create a working link 
+
+    img_url = f'https://spaceimages-mars.com/{img_url_rel}'
+
+
+    return img_url
 
 
 #getting mars facts from another site, just scraping the entire html table from it using pandas
@@ -99,23 +120,34 @@ img_url
 
 # read_html() finds all tables on the page, [0] returns the first table it finds 
 
-df = pd.read_html('https://galaxyfacts-mars.com')[0]
+def mars_facts():
 
-df.columns = df.columns=['Description', 'Mars', 'Earth']
+    try:
 
-df.set_index('Description', inplace=True)
+        df = pd.read_html('https://data-class-mars-facts.s3.amazonaws.com/Mars_Facts/index.html')[0]
+    
+    except BaseException:
+    
+        return None
 
-df
+    df.columns = df.columns=['Description', 'Mars', 'Earth']
+
+    df.set_index('Description', inplace=True)
 
 
-# convert the pandas df back to html with to_html()
+    # convert the pandas df back to html with to_html()
 
-df.to_html()
+    return df.to_html(classes="table table-striped")
+
+#engage flask
+
+if __name__ == "__main__":
+
+    # If running as script, print scraped data
+
+    print(scrape_all())
 
 
-# end the browsing session
-
-browser.quit()
 
 
 
