@@ -21,7 +21,8 @@ def scrape_all():
         "news_title": news_title,
         "news_paragraph": news_paragraph,
         "featured_image": featured_image(browser),
-        "facts": mars_facts(),
+        "facts": mars_facts(browser),
+        "hemispheres": mars_hemi_images(browser),
         "last_modified": dt.datetime.now()
     }
 
@@ -120,7 +121,7 @@ def featured_image(browser):
 
 # read_html() finds all tables on the page, [0] returns the first table it finds 
 
-def mars_facts():
+def mars_facts(browser):
 
     try:
 
@@ -138,6 +139,37 @@ def mars_facts():
     # convert the pandas df back to html with to_html()
 
     return df.to_html(classes="table table-striped")
+
+def mars_hemi_images(browser):
+
+    url = 'https://marshemispheres.com/'
+
+    browser.visit(url)
+
+    try:
+        links = browser.find_by_css('a.product-item img')
+
+    except AttributeError: 
+
+        return None
+    
+    hemisphere_image_urls = []
+
+    for i in range(len(links)):
+        #create the enpty dict entry
+        hemisphere = {}
+        #find image and click[
+        browser.find_by_css('a.product-item img')[i].click()
+        #from next page, click the full sample
+        hemi_sample_elem = browser.links.find_by_text('Sample').first
+        hemisphere['image_url'] = hemi_sample_elem['href']
+        #get title
+        hemisphere['title'] = browser.find_by_css('h2.title').text
+        #add dict to list
+        hemisphere_image_urls.append(hemisphere)
+        browser.back()
+    print(hemisphere_image_urls)
+    return hemisphere_image_urls
 
 #engage flask
 
