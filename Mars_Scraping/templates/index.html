@@ -17,20 +17,22 @@
         <h1>Mission to Mars</h1>
         <!-- Add a button to activate scraping script -->
         <p>
-          <a class="btn btn-primary btn-lg" href="/scrape" role="button"
+          <a class="btn btn-warning btn-lg" href="/scrape" role="button"
             >Scrape New Data</a
           >
         </p>
       </div>
 
       <!-- Add section for Mars News -->
-      <div class="row" id="mars-news">
+      <div class="row">
         <div class="col-md-12">
           <div class="media">
             <div class="media-body">
               <h2>Latest Mars News</h2>
-              <h4 class="media-heading">{{ mars.news_title }}</h4>
-              <p>{{ mars.news_paragraph }}</p>
+              <div class="alert alert-info" role="alert">
+                <h4 class="media-heading"><b>{{ mars.news_title }}</b></h4>
+                <p>{{ mars.news_paragraph }}</p>
+              </div>
             </div>
           </div>
         </div>
